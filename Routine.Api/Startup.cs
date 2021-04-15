@@ -36,7 +36,24 @@ namespace Routine.Api
                 //option.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
                 //表示将xml格式设置为默认返回类型
                 //option.OutputFormatters.Insert(0, new XmlDataContractSerializerOutputFormatter());
-            }).AddXmlDataContractSerializerFormatters();//asp.net core 3.0新写法，添加xml解析
+            }).AddXmlDataContractSerializerFormatters()//asp.net core 3.0新写法，添加xml解析
+            .ConfigureApiBehaviorOptions(setup => {//自定义效验错误返回状态
+                setup.InvalidModelStateResponseFactory = (context) => {
+                    var probleDetails = new ValidationProblemDetails(context.ModelState)
+                    {
+                        Type = "http://www.baidu.com",
+                        Title = "实体效验错误",
+                        Status = StatusCodes.Status422UnprocessableEntity,
+                        Detail = "请查看详细信息",
+                        Instance = context.HttpContext.Request.Path,
+                    };
+                    probleDetails.Extensions.Add("traceId", context.HttpContext.TraceIdentifier);
+                    return new UnprocessableEntityObjectResult(probleDetails)
+                    {
+                        ContentTypes = { "application/problem+json" }
+                    };
+                };
+            });
             //services.AddScoped<RoutineDbContext>();
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddDbContext<RoutineDbContext>(delegate (DbContextOptionsBuilder opt) { opt.UseSqlite("DataSource=routine.db"); });

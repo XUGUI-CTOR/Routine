@@ -42,7 +42,7 @@ namespace Routine.Api.Controllers
             var employeedto = mapper.Map<EmployeeDto>(employee);
             return Ok(employeedto);
         }
-
+        [HttpPost]
         public async Task<ActionResult<EmployeeDto>> CreateEmployeeForCompany(Guid companyId, EmployeeAddDto employee)
         {
             if (!await repository.CompanyExistsAsync(companyId))
@@ -54,6 +54,30 @@ namespace Routine.Api.Controllers
             await repository.SaveAsync();
             return CreatedAtAction(nameof(GetEmployee), 
                 new { companyId = companyId, employeeId = entity.Id }, mapper.Map<Employee, EmployeeDto>(entity));
+        }
+
+        [HttpPut("{employeeId}")]
+        public async Task<ActionResult<EmployeeDto>> UpdateEmployeeForCompany(Guid companyId, Guid employeeId, EmployeeUpdateDto dto)
+        {
+            if (!await repository.CompanyExistsAsync(companyId))
+            {
+                return NotFound();
+            }
+            var employeeEntity = await repository.GetEmployeeAsync(companyId, employeeId);
+            if (employeeEntity == null)
+            {
+                var AddEntity = mapper.Map<Employee>(dto);
+                //AddEntity.CompanyId = companyId;
+                //AddEntity.Id = employeeId;
+                repository.AddEmployee(companyId, AddEntity);
+                await repository.SaveAsync();
+                return CreatedAtAction(nameof(GetEmployee),
+               new { companyId = companyId, employeeId = AddEntity.Id }, mapper.Map<Employee, EmployeeDto>(AddEntity));
+            }
+            employeeEntity = mapper.Map(dto, employeeEntity);
+            repository.UpdateEmployee(employeeEntity);
+            await repository.SaveAsync();
+            return NoContent();  
         }
     }
 }

@@ -32,6 +32,9 @@ namespace Routine.Api.Services
 
         public void AddEmployee(Guid companyId, Employee employee)
         {
+            //if (employee.Id == default)
+            //    employee.Id = Guid.NewGuid();
+            //employee.CompanyId = companyId;
             context.Companies.FirstOrDefault(x => x.Id == companyId)?.Employees?.Add(employee);
         }
 
