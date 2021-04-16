@@ -7,10 +7,19 @@ namespace EFCoreCode_First
     {
         static void Main(string[] args)
         {
-            using var dbcontext = new SchoolContext();
-            var getname = new Func<string>(() => "warboss");
-            var student = dbcontext.Students.Where(x => x.Name == getname()).FirstOrDefault();
-            Console.WriteLine($"{student.Name} by {student.StudentId}");
+            using (var context = new BloggingContext())
+            {
+                Console.WriteLine("Inserting a new blog");
+                context.Add(new Blog { Url = "http://blogs.msdn.com/adonet" });
+                context.SaveChanges();
+                Console.WriteLine("querying for a blog");
+                var blog = context.Blogs.OrderBy(x => x.Id).FirstOrDefault();
+                Console.WriteLine("Updating the blog and adding a post");
+                blog.Url = "https://devblogs.microsoft.com/dotnet";
+              
+                context.SaveChanges();
+                
+            }
         }
 
 
