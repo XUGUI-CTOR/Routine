@@ -23,6 +23,7 @@ namespace Routine.Api.Profiles
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id));
             CreateMap<EmployeeAddDto, Employee>();
             CreateMap<EmployeeUpdateDto, Employee>();
+            CreateMap<Employee, EmployeeUpdateDto>();
         }
     }
 }

@@ -11,6 +11,9 @@ using Routine.Api.DtoParameters;
 using Routine.Api.Models;
 using Routine.Api.Services;
 using Routine.Api.Entities;
+using Routine.Api.Helpers;
+using Newtonsoft.Json;
+
 namespace Routine.Api.Controllers
 {
     [ApiController]
@@ -29,14 +32,58 @@ namespace Routine.Api.Controllers
             this.services = services ?? throw new ArgumentNullException(nameof(services));
             this.mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         }
-        [HttpGet()]
-        public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies([FromQuery]CompanyDtoParameters paras)
+        [HttpGet(Name = nameof(GetCompanies))]
+        public async Task<ActionResult<IEnumerable<CompanyDto>>> GetCompanies([FromQuery] CompanyDtoParameters paras)
         {
             var companies = await services.GetCompaniesAsync(paras);
+            var previousLink = companies.HasPrevious ? CreateCompaniesResourceUri(paras, ResourceUriType.PreviousPage) : string.Empty;
+            var nextLink = companies.HasNext ? CreateCompaniesResourceUri(paras, ResourceUriType.NextPage) : string.Empty;
+            var paginationMetadata = new
+            {
+                companies.PageSize,
+                companies.TotalCount,
+                companies.TotalPages,
+                companies.CurrentPage,
+                PreviousLink = previousLink,
+                NextLink = nextLink
+            };
+            Response.Headers.Add("X-Paginatiop", JsonConvert.SerializeObject(paginationMetadata));
             var companydtos = mapper.Map<IEnumerable<CompanyDto>>(companies);
             return Ok(companydtos);
         }
-        [HttpGet("{companyid}",Name =nameof(GetCompanyById))]
+
+        private string CreateCompaniesResourceUri(CompanyDtoParameters parameters, ResourceUriType type)
+        {
+            switch (type)
+            {
+                case ResourceUriType.PreviousPage:
+                    return Url.Link(nameof(GetCompanies), new
+                    {
+                        PageNumber = parameters.PageNumber - 1,
+                        parameters.PageSize,
+                        parameters.CompanyName,
+                        parameters.SearchTerm
+                    });
+                case ResourceUriType.NextPage:
+                    return Url.Link(nameof(GetCompanies), new
+                    {
+                        PageNumber = parameters.PageNumber + 1,
+                        PageSize = parameters.PageSize,
+                        parameters.CompanyName,
+                        parameters.SearchTerm
+                    });
+                default:
+                    return Url.Link(nameof(GetCompanies), new
+                    {
+                        PageNumber = parameters.PageNumber,
+                        PageSize = parameters.PageSize,
+                        parameters.CompanyName,
+                        parameters.SearchTerm
+                    });
+            }
+        }
+
+        [HttpGet("{companyid}", Name = nameof(GetCompanyById))]
         public async Task<ActionResult<CompanyDto>> GetCompanyById(Guid companyid)
         {
             //var exist = await services.CompanyExistsAsync(companyid);
@@ -60,6 +107,17 @@ namespace Routine.Api.Controllers
         {
             Response.Headers.Add("Allow", "GET,POST,OPTIONS");
             return Ok();
+        }
+
+        [HttpDelete("{companyid}")]
+        public async Task<IActionResult> DeleteCompany(Guid companyid)
+        {
+            var entity = await services.GetCompanyAsync(companyid);
+            if (entity == null)
+                return NotFound();
+            services.DeleteCompany(entity);
+            await services.SaveAsync();
+            return NoContent();
         }
     }
 }

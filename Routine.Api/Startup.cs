@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json.Serialization;
 using Routine.Api.Data;
 using Routine.Api.Services;
 using System;
@@ -36,9 +37,12 @@ namespace Routine.Api
                 //option.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
                 //表示将xml格式设置为默认返回类型
                 //option.OutputFormatters.Insert(0, new XmlDataContractSerializerOutputFormatter());
-            }).AddXmlDataContractSerializerFormatters()//asp.net core 3.0新写法，添加xml解析
-            .ConfigureApiBehaviorOptions(setup => {//自定义效验错误返回状态
-                setup.InvalidModelStateResponseFactory = (context) => {
+            }).AddNewtonsoftJson(setup => setup.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver())
+                .AddXmlDataContractSerializerFormatters()//asp.net core 3.0新写法，添加xml解析
+            .ConfigureApiBehaviorOptions(setup =>
+            {//自定义效验错误返回状态
+                setup.InvalidModelStateResponseFactory = (context) =>
+                {
                     var probleDetails = new ValidationProblemDetails(context.ModelState)
                     {
                         Type = "http://www.baidu.com",
@@ -71,9 +75,10 @@ namespace Routine.Api
             {
                 app.UseExceptionHandler(appbuilder =>
                 {
-                    appbuilder.Run(async context => {
+                    appbuilder.Run(async context =>
+                    {
                         context.Response.StatusCode = 500;
-                       await context.Response.WriteAsync("Unexcepted Error!");
+                        await context.Response.WriteAsync("Unexcepted Error!");
                     });
                 });
             }

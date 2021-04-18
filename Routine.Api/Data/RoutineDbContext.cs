@@ -24,7 +24,7 @@ namespace Routine.Api.Data
             modelBuilder.Entity<Employee>().Property(x => x.EmployeeNo).IsRequired().HasMaxLength(10);
             modelBuilder.Entity<Employee>().Property(x => x.FirstName).IsRequired().HasMaxLength(50);
             modelBuilder.Entity<Employee>().Property(x => x.LastName).IsRequired().HasMaxLength(50);
-            modelBuilder.Entity<Employee>().HasOne(x => x.Company).WithMany(x => x.Employees).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Employee>().HasOne(x => x.Company).WithMany(x => x.Employees).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<Company>().HasData(
               new Company
               {
@@ -80,7 +80,7 @@ namespace Routine.Api.Data
                   Id = Guid.Parse("6fb600c1-9011-4fd7-9234-881379716411"),
                   Name = "AC Milan",
                   Introduction = "Football Club",
-
+                   
               },
               new Company
               {

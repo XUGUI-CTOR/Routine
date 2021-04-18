@@ -2,6 +2,7 @@
 using Routine.Api.Data;
 using Routine.Api.DtoParameters;
 using Routine.Api.Entities;
+using Routine.Api.Helpers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -53,12 +54,12 @@ namespace Routine.Api.Services
             context.Employees.Remove(employee);
         }
 
-        public async Task<IEnumerable<Company>> GetCompaniesAsync(CompanyDtoParameters paras)
+        public async Task<PageList<Company>> GetCompaniesAsync(CompanyDtoParameters paras)
         {
             if (paras == null)
                 throw new ArgumentNullException(nameof(paras));
-            if (string.IsNullOrWhiteSpace(paras.CompanyName) && string.IsNullOrWhiteSpace(paras.SearchTerm))
-                return await context.Companies.ToListAsync();
+            //if (string.IsNullOrWhiteSpace(paras.CompanyName) && string.IsNullOrWhiteSpace(paras.SearchTerm))
+            //    return await context.Companies.ToListAsync();
             var queryExpresstion = context.Companies as IQueryable<Company>;
             if (!string.IsNullOrWhiteSpace(paras.CompanyName))
             {
@@ -70,7 +71,9 @@ namespace Routine.Api.Services
                 paras.SearchTerm = paras.SearchTerm.Trim();
                 queryExpresstion = queryExpresstion.Where(x => x.Name.Contains(paras.SearchTerm) || x.Introduction.Contains(paras.SearchTerm));
             }
-            return await queryExpresstion.ToListAsync();
+            //return await queryExpresstion.Skip(paras.PageSize * (paras.PageNumber - 1)).Take(paras.PageSize).ToListAsync();
+
+            return await PageList<Company>.CreateAsync(queryExpresstion, paras.PageNumber, paras.PageSize);
         }
 
         public Task<IEnumerable<Company>> GetCompaniesAsync(IEnumerable<Guid> companyIds)
@@ -88,22 +91,29 @@ namespace Routine.Api.Services
             return Task.FromResult(context.Employees.FirstOrDefault(x => x.Id == employeeId && x.CompanyId == companyId));
         }
 
-        public Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId, string genderDisplay, string q)
+        public Task<IEnumerable<Employee>> GetEmployeesAsync(Guid companyId, EmployeeDtoParameters parameters)
         {
-            if (string.IsNullOrWhiteSpace(genderDisplay) && string.IsNullOrWhiteSpace(q))
-                return Task.FromResult(context.Employees.Where(x => x.CompanyId == companyId).OrderBy(x => x.EmployeeNo).AsEnumerable());
+            //if (string.IsNullOrWhiteSpace(parameters.Gender) && string.IsNullOrWhiteSpace(parameters.Q))
+            //    return Task.FromResult(context.Employees.Where(x => x.CompanyId == companyId).OrderBy(x => x.EmployeeNo).AsEnumerable());
+
             var query = context.Employees.Where(x => x.CompanyId == companyId);
-            if (!string.IsNullOrWhiteSpace(genderDisplay))
+            if (!string.IsNullOrWhiteSpace(parameters.Gender))
             {
-                var gender = Enum.Parse<Gender>(genderDisplay.Trim());
+                var gender = Enum.Parse<Gender>(parameters.Gender.Trim());
                 query = query.Where(x => x.Gender == gender);
             }
-            if (!string.IsNullOrWhiteSpace(q))
+            if (!string.IsNullOrWhiteSpace(parameters.Q))
             {
-                q = q.Trim();
-                query = query.Where(x => x.EmployeeNo.Contains(q) || x.FirstName.Contains(q) || x.LastName.Contains(q));
+                parameters.Q = parameters.Q.Trim();
+                query = query.Where(x => x.EmployeeNo.Contains(parameters.Q) || x.FirstName.Contains(parameters.Q) || x.LastName.Contains(parameters.Q));
             }
-            return Task.FromResult(query.OrderBy(x => x.EmployeeNo).AsEnumerable());
+            //if (!string.IsNullOrWhiteSpace(parameters.OrderBy))
+            //{
+            //    if (parameters.OrderBy.ToLower() == "name")
+            //        query = query.OrderBy(x => x.FirstName).ThenBy(x => x.LastName);
+            //}
+            
+            return Task.FromResult(query.AsEnumerable());
         }
 
         public Task<bool> SaveAsync()
